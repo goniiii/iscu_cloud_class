@@ -149,6 +149,35 @@ export async function POST(request) {
 
 
     /*
+     * 5-1. 자기 서비스 URL 차단
+     *
+     * 요청이 들어온 호스트와 같은 호스트의 URL이면
+     * 경로나 http/https와 관계없이 차단합니다.
+     * -> 400 Bad Request
+     */
+    const requestHost = (
+      request.headers.get("x-forwarded-host") ||
+      request.headers.get("host") ||
+      new URL(request.url).host
+    )
+      .split(",")[0]
+      .trim()
+      .toLowerCase();
+
+    if (parsedUrl.host.toLowerCase() === requestHost) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "SELF_URL",
+            message: "This service's own URL cannot be shortened.",
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+
+    /*
      * 6. Short URL 생성
      *
      * 모든 검사를 통과했으므로
